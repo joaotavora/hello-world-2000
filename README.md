@@ -19,6 +19,7 @@ that usual things like a C++ compiler (`clang++`), a shell (`bash` or
 1. [Bare bones setup](#bare-bones)
 2. [Top-level Makefile](#makefile)
 3. [A library](#a-library)
+4. [`catch2` tests](#catch2-tests)
 
 <a name="bare-bones"></a>
 ## Bare bones
@@ -473,3 +474,95 @@ make[3]: Entering directory '.../build-debug'
                  -g  CMakeFiles/hello.dir/src/main.cpp.o -o bin/hello  \
                  lib/libhello.a
 ```
+
+<a name=catch2-tests></a>
+## `catch2` tests
+
+_**TODO**: very incomplete_
+
+
+### Setup
+
+`CMakeLists.txt`
+
+```Cmake
+...
+# Make the "hello-tests" executable target
+set(tests_exec ${PROJECT_NAME}-tests)
+file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "test/*.cpp")
+add_executable(${tests_exec} ${src_cpp})
+target_link_libraries(${tests_exec} PRIVATE ${core_lib} ${CONAN_LIBS})
+```
+
+`conanfile.txt`
+
+```Conanfile
+[requires]
+nlohmann_json/3.10.5
+catch2/3.1.0
+
+[generators]
+cmake
+```
+
+### Actual tests
+
+`test/main.cpp` contains the actual tests and the `main` function.
+They could be in separate files, the CMake code glob would do the
+right thing.
+
+```
+#include <vector>
+#include <string>
+
+#define CATCH_CONFIG_RUNNER
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_session.hpp>
+
+#include "core/hello.h"
+
+TEST_CASE("Greeting is acceptable", "[core]") {
+  auto args = std::vector<std::string>{"foo", "bar"};
+  auto g = greet(args);
+  REQUIRE(g.contains("Hello"));
+  REQUIRE(g.at("Hello") == "World");
+  REQUIRE(g.contains("args"));
+  REQUIRE(g.at("args").is_array());
+  REQUIRE(g.at("args").at(0) == "foo");
+  REQUIRE(g.at("args").at(1) == "bar");
+}
+
+int main(int argc, char** argv)
+{
+  int result = Catch::Session().run( argc, argv );
+  if (result != 0) return result;
+}
+```
+
+### Makefile tricks
+
+`Makefile`
+
+```Make
+...
+watch-%:
+	rg --files src test | entr -r -s 'make check-$*'
+
+check-%: %
+	./build-$*/bin/hello-tests
+...
+```
+
+### Try it out
+
+```
+make check-debug
+```
+
+or better yet
+
+```
+make watch-debug
+```
+
+

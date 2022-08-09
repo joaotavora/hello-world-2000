@@ -23,6 +23,9 @@ watch-%:
 check-%: %
 	./build-$*/bin/hello-tests
 
+check-%: %
+	./build-$*/bin/hello-tests
+
 demo-%: %
 	./build-$*/bin/hello
 
