@@ -20,6 +20,7 @@ that usual things like a C++ compiler (`clang++`), a shell (`bash` or
 2. [Top-level Makefile](#makefile)
 3. [A library](#a-library)
 4. [`catch2` tests](#catch2-tests)
+5. [Google benchmark](#google-benchmark)
 
 <a name="bare-bones"></a>
 ## Bare bones
@@ -566,3 +567,7 @@ make watch-debug
 ```
 
 
+<a name=google-benchmark></a>
+## Google benchmark
+
+_**TODO**: very incomplete_

@@ -34,3 +34,9 @@ set(tests_exec ${PROJECT_NAME}-tests)
 file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "test/*.cpp")
 add_executable(${tests_exec} ${src_cpp})
 target_link_libraries(${tests_exec} PRIVATE ${core_lib} ${CONAN_LIBS})
+
+# Likewise, make the "hello-bench" executable target
+set(bench_exec ${PROJECT_NAME}-bench)
+file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "bench/*.cpp")
+add_executable(${bench_exec} ${src_cpp})
+target_link_libraries(${bench_exec} PRIVATE ${core_lib} ${CONAN_LIBS})
