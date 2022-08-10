@@ -12,10 +12,22 @@ add_compile_options(-Wall -Wextra -Werror -pedantic)
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-# Make the "hello" executable target. Use globbing for src
-file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "src/*.cpp")
-add_executable(${PROJECT_NAME} ${src_cpp})
+# Add a fancy-sounding "core lib"
+set(core_lib ${PROJECT_NAME}-lib)
+file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "src/core/*.cpp")
+add_library(${core_lib} STATIC ${src_cpp})
+target_link_libraries(${core_lib} PRIVATE ${CONAN_LIBS})
+target_include_directories(${core_lib} PUBLIC ./src)
+set_target_properties(${core_lib} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
-# Add -DHELLO_IS_HELLO preprocessor define
-target_compile_definitions(${PROJECT_NAME} PUBLIC HELLO_IS_HELLO)
+# The silly example -DHELLO_IS_HELLO preprocessor directive can still apply
+target_compile_definitions(${core_lib} PUBLIC HELLO_IS_HELLO)
+
+# Now make the "hello" executable target depending on "core lib"
+file(GLOB src_cpp CONFIGURE_DEPENDS "src/*.cpp")
+add_executable(${PROJECT_NAME} ${src_cpp})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${core_lib} ${CONAN_LIBS})
+
+
+
 

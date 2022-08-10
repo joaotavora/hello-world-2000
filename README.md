@@ -18,6 +18,7 @@ that usual things like a C++ compiler (`clang++`), a shell (`bash` or
 
 1. [Bare bones setup](#bare-bones)
 2. [Top-level Makefile](#makefile)
+3. [A library](#a-library)
 
 <a name="bare-bones"></a>
 ## Bare bones
@@ -339,3 +340,136 @@ Here are some of its useful targets:
 
 [top-level-makefile]: https://github.com/joaotavora/hello-world-2000/blob/master/Makefile
 [entr]: https://eradman.com/entrproject/
+
+<a name=a-library></a>
+## A library
+
+A useful complication to introduce at this point is a library.  Having
+part of the source code compile as a library makes it possible to:
+
+1. Suggest/enforce good API separation between services offered by the
+   library and how to make use of those services in programs;
+
+2. Write functional tests and benchmarks in a C++ framework that link
+   against the library and directly exercise that API;
+
+3. Eventually distribute our code as a library so that others may link
+   (statically or dynamically) against it in their programs.
+   
+For now, we're going to create an actual static library object.  In
+future installments we could create a header-only library or a shared
+library object.
+
+### Rearrange the C++ sources 
+
+The first thing to do is to shuffle our sources a bit.  This is what
+the directory structure should look like:
+
+```
+❯ tree src
+src/
+|-- core/
+|   |-- hello.cpp
+|   `-- hello.h
+`-- main.cpp
+```
+
+And here's the full content of those 3 files:
+
+```c++
+// src/core/hello.h
+#include <span>
+#include <string>
+
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
+json greet(std::span<std::string> args);
+
+// src/core/hello.cpp
+#include "hello.h"
+
+json greet(std::span<std::string> args) {
+  return json{{"Hello", "World"}, {"args", args}};
+}
+
+// src/main.cpp
+#include <iostream>
+#include <vector>
+#include <string>
+
+#include "core/hello.h"
+
+int main(int argc, char* argv[]) {
+  std::vector<std::string> args(argv, argv + argc);
+  auto j = greet(args);
+  std::cout << j << "\n";
+}
+```
+
+### Tweak `CMakeLists.txt`
+
+In `CMakeLists.txt`, replace the previous `add_executable` block with
+something slightly beefier:
+
+```CMake
+...
+
+# Add a fancy-sounding "core lib"
+set(core_lib ${PROJECT_NAME}-lib)
+file(GLOB_RECURSE src_cpp CONFIGURE_DEPENDS "src/core/*.cpp")
+add_library(${core_lib} STATIC ${src_cpp}) 
+target_link_libraries(${core_lib} PRIVATE ${CONAN_LIBS})
+target_include_directories(${core_lib} PUBLIC ./src)
+set_target_properties(${core_lib} PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+
+# The silly example -DHELLO_IS_HELLO preprocessor directive can still apply
+target_compile_definitions(${core_lib} PUBLIC HELLO_IS_HELLO)
+
+# Now make the "hello" executable target depending on "core lib"
+file(GLOB src_cpp CONFIGURE_DEPENDS "src/*.cpp")
+add_executable(${PROJECT_NAME} ${src_cpp})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${core_lib} ${CONAN_LIBS})
+```
+
+### Try it out (and understand what happened)
+
+We can take advantage of the Makefile [created previously](#makefile):
+
+```
+$ make clean debug
+```
+
+This re-creates the `build-debug` directory with the new setup and then
+re-builds the project for the "debug" configuration.  
+
+We can see that we have kept the `build-debug/bin/hello` program,
+which functions as before, but also gained a new
+`build-debug/lib/libhello.a` file.
+
+If one runs the above command as `VERBOSE=1 make clean debug`, the
+command invocations pertaining to library creation become evident:
+
+```
+make[3]: Entering directory '../build-debug'
+...
+/usr/bin/ar qc lib/libhello.a "CMakeFiles/hello-lib.dir/src/core/hello.cpp.o"
+/usr/bin/ranlib lib/libhello.a
+```
+
+As can be seen, the `ar` program is first run to create the
+`libhello.a` file, which is a standard name for a libray that is
+simply an archive of object files.  Then the `ranlib` program runs to
+add an index to this archive.
+
+The `build-debug/bin/hello` program is created later as the project of
+mashing together the translation unit of `src/main.cpp` and the
+archive file created above.
+
+```
+make[3]: Entering directory '.../build-debug'
+...
+/usr/bin/clang++ -gdwarf-4 -fsanitize=address -fsanitize=undefined     \
+                 -g  CMakeFiles/hello.dir/src/main.cpp.o -o bin/hello  \
+                 lib/libhello.a
+```
