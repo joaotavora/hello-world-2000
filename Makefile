@@ -1,15 +1,14 @@
-CXX=clang++
+CXX=g++
+CONAN_PROFILE=default
 
 all: release debug
 
 build-debug: export CXXFLAGS := -gdwarf-4 -fsanitize=address -fsanitize=undefined
 build-release: CMAKE_FLAGS=-DCMAKE_BUILD_TYPE=Release -G"Unix Makefiles"
 
-
-build-%: export CXX := g++
 build-%:
 	mkdir -p build-$*
-	(cd build-$* && conan install --build=missing --profile=${CXX} ../) \
+	(cd build-$* && conan install --build=missing --profile=${CONAN_PROFILE} ../) \
               || (ret=$$?; rm -rf $@ && exit $$ret)
 	(cd build-$* && CXXFLAGS='${CXXFLAGS}' cmake ${CMAKE_FLAGS} ../)       \
               || (ret=$$?; rm -rf $@ && exit $$ret)
