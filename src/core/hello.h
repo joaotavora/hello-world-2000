@@ -4,4 +4,6 @@
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
-json greet(std::span<std::string> args);
+namespace hello {
+nlohmann::json greet(std::span<std::string> args);
+}

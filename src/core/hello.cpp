@@ -1,5 +1,7 @@
 #include "hello.h"
 
-json greet(std::span<std::string> args) {
+namespace hello {
+nlohmann::json greet(std::span<std::string> args) {
   return json{{"Hello", "World"}, {"args", args}};
+}
 }

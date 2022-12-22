@@ -9,7 +9,7 @@
 
 TEST_CASE("Greeting is acceptable", "[core]") {
   auto args = std::vector<std::string>{"foo", "bar"};
-  auto g = greet(args);
+  auto g = hello::greet(args);
   REQUIRE(g.contains("Hello"));
   REQUIRE(g.at("Hello") == "World");
   REQUIRE(g.contains("args"));
